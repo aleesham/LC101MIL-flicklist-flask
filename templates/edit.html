@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>Edit My Watchlist</h2>
+
+<form action="/add" method="post">
+    <label>
+        I want to add
+        <input type="text" name="new-movie"/>
+        to my watchlist.
+    </label>
+    <input type="submit" value="Add It"/>
+</form>
+
+<form action="/crossoff" method="post">
+    <label>
+        I want to cross off
+        <select name="crossed-off-movie"/>
+            {% for movie in movies: %}
+                <option value="{{movie}}">{{movie}}</option>
+            {% endfor %}
+        </select>
+        from my watchlist.
+    </label>
+    <input type="submit" value="Cross It Off"/>
+</form>
+
+{% if error %}
+    <p class='error'>{{ error }}</p>
+{% endif %}
+
+{% endblock %}
