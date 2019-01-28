@@ -55,7 +55,7 @@ def add_movie():
     # TODO:
     # Create a template called add-confirmation.html inside your /templates directory
     # Use that template to render the confirmation message instead of this temporary message below
-    return "Confirmation Message Under Construction..."
+    return render_template('add-confirmation.html', movie = new_movie_escaped)
 
 # TODO:
 # Modify the edit.html file to display the watchlist in an unordered list with bullets in front of each movie.
