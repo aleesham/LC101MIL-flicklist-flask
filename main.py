@@ -5,7 +5,7 @@ import cgi
 app = Flask(__name__)
 app.config['DEBUG'] = True      # displays runtime errors in the browser, too
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flicklist:MyNewPass@localhost:8889/flicklist'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flicklist:flicklist@localhost:8889/flicklist'
 app.config['SQLALCHEMY_ECHO'] = True
 
 db = SQLAlchemy(app)
@@ -33,12 +33,12 @@ terrible_movies = [
 
 def get_current_watchlist():
     # returns user's current watchlist -- a list of movies they want to see but haven't yet
-    return [movie.name for movie in Movie.query.all()]
+    return Movie.query.filter_by(watched = False).all()
 
 def get_watched_movies():
     # For now, we are just pretending
     # returns the list of movies the user has already watched and crossed off
-    return [ "The Matrix", "The Princess Bride", "Buffy the Vampire Slayer" ]
+    return Movie.query.filter_by(watched = True).all()
 
 
 # Create a new route called rate_movie which handles a POST request on /rating-confirmation
@@ -68,7 +68,9 @@ def movie_ratings():
 
 @app.route("/crossoff", methods=['POST'])
 def crossoff_movie():
-    crossed_off_movie = request.form['crossed-off-movie']
+    crossed_off_movie_id = int(request.form['crossed-off-movie'])
+    print(type(crossed_off_movie_id))
+    crossed_off_movie = Movie.query.filter_by(id = crossed_off_movie_id).first()
 
     if crossed_off_movie not in get_current_watchlist():
         # the user tried to cross off a movie that isn't in their list,
@@ -77,6 +79,10 @@ def crossoff_movie():
 
         # redirect to homepage, and include error as a query parameter in the URL
         return redirect("/?error=" + error)
+
+    crossed_off_movie.watched = True
+    db.session.add(crossed_off_movie)
+    db.session.commit()
 
     # if we didn't redirect by now, then all is well
     return render_template('crossoff.html', crossed_off_movie=crossed_off_movie)
@@ -100,6 +106,10 @@ def add_movie():
     # 'escape' the user's input so that if they typed HTML, it doesn't mess up our site
     new_movie_escaped = cgi.escape(new_movie, quote=True)
 
+    movie = Movie(new_movie_escaped)
+    db.session.add(movie)
+    db.session.commit()
+
     return render_template('add-confirmation.html', movie=new_movie)
 
 
@@ -110,3 +120,4 @@ def index():
 
 if __name__ == "__main__":
     app.run()
+
