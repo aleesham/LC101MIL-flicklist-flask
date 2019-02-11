@@ -9,9 +9,28 @@
         </style>
     </head>
     <body>
+        <div style="float: right;">
+            {% if 'user' in session %}
+                {{ session['user'] }}
+                <form action='/logout' method='post'>
+                    <input type='submit' value='Log out'/>
+                </form>
+            {% else %}
+                <a href='/register'>Register</a> |
+                <a href='/login'>Login</a> 
+            {% endif %}
+        </div>
         <h1>
             <a href="/">FlickList</a>
         </h1>
+
+        <ul>
+        {% with messages = get_flashed_messages() %}
+            {% for message in messages %}
+                <li class='error'>{{ message }}</li>
+            {% endfor %}
+        {% endwith %}
+        </ul>
 
         {% block content %}
         {% endblock %}

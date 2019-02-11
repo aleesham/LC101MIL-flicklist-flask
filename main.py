@@ -1,11 +1,14 @@
-from flask import Flask, request, redirect, render_template
+from flask import Flask, request, redirect, render_template, flash, session
+
 from flask_sqlalchemy import SQLAlchemy
 import cgi
 
 app = Flask(__name__)
 app.config['DEBUG'] = True      # displays runtime errors in the browser, too
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flicklist:MyNewPass@localhost:8889/flicklist'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flicklist:flicklist@localhost:8889/flicklist'
 app.config['SQLALCHEMY_ECHO'] = True
+
+app.secret_key = 'thisismysecretkey'
 
 db = SQLAlchemy(app)
 
@@ -22,6 +25,18 @@ class Movie(db.Model):
     def __repr__(self):
         return '<Movie %r>' % self.name
 
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120))
+    password = db.Column(db.String(120))
+
+    def __init__(self, email, password):
+        self.email = email
+        self.password = password
+
+    def __repr__(self):
+        return '<User %r>' % self.name
+
 # a list of movie names that nobody should have to watch
 terrible_movies = [
     "Gigli",
@@ -36,6 +51,54 @@ def get_current_watchlist():
 
 def get_watched_movies():
     return Movie.query.filter_by(watched=True).all()
+
+def is_email(email):
+    at_index = email.find('@')
+    if at_index < 0:
+        return False
+    
+    right_dot_index = email.rfind('.')
+    if right_dot_index < 0 or right_dot_index < at_index:
+        return False
+
+    return True
+
+@app.before_request
+def require_login():
+   allowed_routes = ['login', 'register']
+   if request.endpoint not in allowed_routes or 'user' not in session:
+       return redirect('/register')
+        
+
+@app.route('/register', methods = ['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        verify_password = request.form['verify-password']
+
+        if not is_email(email):
+            flash("That doesn't look like an email")
+            return redirect('/register')
+
+        # TODO: Validation for password verification
+
+        user = User(email, password)
+        session['user'] = user.email
+        db.session.add(user)
+        db.session.commit()
+        return redirect('/')
+
+    return render_template('register.html')
+
+@app.route('/logout', methods = ['POST'])
+def logout():
+    del session['user']
+    return redirect('/')
+    
+
+
+
 
 # Create a new route called rate_movie which handles a POST request on /rating-confirmation
 @app.route("/rating-confirmation", methods=['POST'])
