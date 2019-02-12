@@ -4,7 +4,7 @@ import cgi
 
 app = Flask(__name__)
 app.config['DEBUG'] = True      # displays runtime errors in the browser, too
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flicklist:MyNewPass@localhost:8889/flicklist'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flicklist:flicklist@localhost:8889/flicklist'
 app.config['SQLALCHEMY_ECHO'] = True
 
 db = SQLAlchemy(app)
@@ -50,6 +50,26 @@ def get_watched_movies():
     return Movie.query.filter_by(watched=True).all()
 
 # TODO 3: Add "/login" GET and POST routes.
+@app.route("/login", methods = ["GET", "POST"])
+def login():
+    if request.method == "GET":
+        return render_template('login.html')
+
+    email = request.form['email']
+    password = request.form['password']
+
+    user = User.query.filter_by(email = email).first()
+    if not user:
+        flash('User does not exist.')
+        return redirect('/login')
+
+    if password != user.password:
+        flash('Incorrect password')
+        return redirect('/login')
+
+    session['user'] = email
+    return redirect('/')
+
 # TODO 4: Create login template with username and password.
 #         Notice that we've already created a 'login' link in the upper-right corner of the page that'll connect to it.
 
@@ -58,11 +78,22 @@ def register():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
+        verify = request.form['verify']
         if not is_email(email):
             flash('zoiks! "' + email + '" does not seem like an email address')
             return redirect('/register')
         # TODO 1: validate that form value of 'verify' matches password
+        if password != verify:
+            flash('Passwords do not match')
+            return redirect('/register')
+
         # TODO 2: validate that there is no user with that email already
+        user = User.query.filter_by(email = email).first()
+
+        if user:
+            flash('User with email "{}" already exists'.format(email))
+            return redirect('/register')
+        
         user = User(email=email, password=password)
         db.session.add(user)
         db.session.commit()
@@ -160,7 +191,8 @@ def index():
 #         It should contain 'register' and 'login'.
 @app.before_request
 def require_login():
-    if not ('user' in session or request.endpoint == 'register'):
+    print(request.endpoint)
+    if not ('user' in session or request.endpoint == 'register' or request.endpoint == 'login'):
         return redirect("/register")
 
 # In a real application, this should be kept secret (i.e. not on github)
